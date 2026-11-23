@@ -39,10 +39,12 @@ jobs:
 
   build:
     needs: draft
+    # Ubuntu 24.04 on purpose: the 26.04 image behind ubuntu-latest has no
+    # Ubuntu archive in apt, so musl-tools cannot be installed there.
     strategy:
       matrix:
         include:
-          - runner: ubuntu-latest
+          - runner: ubuntu-24.04
             arch: x86_64
           - runner: ubuntu-24.04-arm
             arch: aarch64
