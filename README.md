@@ -1,28 +1,66 @@
 # immich-rs
 
-A Rust rewrite of the official [Immich](https://github.com/immich-app/immich) command line tool
-(`immich`, the npm package `@immich/cli` 3.4.2). It is meant as a drop-in replacement: the same
-commands, options, environment variables, `auth.yml` config file and console output, in a single
-native binary with no Node.js runtime.
+[![CI](https://github.com/Gren-95/immich-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/Gren-95/immich-rs/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Gren-95/immich-rs)](https://github.com/Gren-95/immich-rs/releases/latest)
+[![Matches @immich/cli](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2FGren-95%2Fimmich-rs%2Fmain%2FCargo.toml&query=%24.package.version&label=matches%20%40immich%2Fcli&color=4250af)](https://www.npmjs.com/package/@immich/cli)
+[![License: AGPL-3.0](https://img.shields.io/github/license/Gren-95/immich-rs)](LICENSE)
+
+Upload photos and videos to your [Immich](https://github.com/immich-app/immich) server from the
+command line. immich-rs is a Rust rewrite of the official Immich CLI (`immich`, the npm package
+`@immich/cli`) and a drop-in replacement for it:
+
+- **Same interface.** The same commands, options, environment variables, `auth.yml` file and
+  console output, so existing scripts and logins keep working.
+- **One static binary.** No Node.js or npm: download one file and run it.
+- **Kept current.** A monthly checkup compares it with the newest `@immich/cli` and lists the
+  upstream changes to port.
 
 This is a tribute rewrite, not an official Immich project. It follows the original CLI's logic
-closely and, like Immich, is licensed under the GNU Affero General Public License v3.0
-(see [LICENSE](LICENSE)). All credit for Immich and its CLI goes to the Immich team.
-
-The version number tracks the `@immich/cli` version whose behaviour it mirrors.
+closely and, like Immich, is licensed under the GNU Affero General Public License v3.0. All
+credit for Immich and its CLI goes to the Immich team.
 
 ## Install
 
-```bash
-cargo install --path .
-```
+### Download a release
 
-This installs `immich-rs` into `~/.cargo/bin`. To use it where scripts call `immich`, link it
-under that name somewhere on your `PATH`:
+Static builds for Linux on x86_64 and aarch64 (any distribution):
 
 ```bash
-ln -s ~/.cargo/bin/immich-rs ~/.local/bin/immich
+arch=$(uname -m)
+base=https://github.com/Gren-95/immich-rs/releases/latest/download
+curl -fsSLO "$base/immich-rs-$arch-linux.tar.gz"
+curl -fsSLO "$base/SHA256SUMS"
+sha256sum --check --ignore-missing SHA256SUMS
+tar -xzf "immich-rs-$arch-linux.tar.gz" immich-rs
+install -Dm755 immich-rs ~/.local/bin/immich-rs
 ```
+
+### Build from source
+
+With a recent stable Rust toolchain:
+
+```bash
+cargo install --locked --git https://github.com/Gren-95/immich-rs
+```
+
+This installs `immich-rs` into `~/.cargo/bin`. Only Linux is tested.
+
+### Use it as `immich`
+
+To run it where scripts call `immich`, link it under that name somewhere on your `PATH`:
+
+```bash
+ln -s ~/.local/bin/immich-rs ~/.local/bin/immich
+```
+
+## Quick start
+
+```bash
+immich-rs login https://immich.example.com/api YOUR_API_KEY
+immich-rs upload --recursive ~/Pictures
+```
+
+Create the API key in Immich under Account Settings, API Keys.
 
 ## Usage
 
@@ -47,7 +85,7 @@ Commands:
 ### Log in
 
 ```bash
-immich-rs login http://192.168.1.216:2283/api YOUR_API_KEY
+immich-rs login https://immich.example.com/api YOUR_API_KEY
 ```
 
 The URL and key are stored in `~/.config/immich/auth.yml` (mode 0600). If the server advertises
@@ -161,6 +199,24 @@ against `immich` 3.4.2 and match. The known differences:
 - A file that changes size while being uploaded fails with `file changed size while uploading`
   instead of sending a body that disagrees with its length.
 
+## Keeping up with upstream
+
+The version number is the `@immich/cli` version whose behaviour immich-rs matches: 3.4.2 means
+the same commands and output as `@immich/cli` 3.4.2.
+
+On the 1st of every month, the [checkup workflow](.github/workflows/checkup.yml) runs:
+
+- formatting, clippy and the tests on the newest stable Rust
+- `cargo audit` for security advisories and yanked or unmaintained crates
+- the dependency updates Cargo.toml allows, tried against the tests, and new major versions
+- a check for a newer `@immich/cli`, with the upstream commits under `packages/cli` since the
+  matched version
+
+Anything that needs a look becomes an issue labelled `checkup`. To backport a new upstream
+version, port the listed commits, set `version` in Cargo.toml to the new version and tag it (see
+below). Run the same checks locally with `.github/scripts/checkup.sh` (needs `cargo-audit`,
+`jq` and a logged-in `gh`).
+
 ## Development
 
 ```bash
@@ -170,6 +226,16 @@ cargo test
 cargo build --release
 ```
 
+To release, push a tag that matches the version in Cargo.toml:
+
+```bash
+git tag v3.4.2
+git push origin v3.4.2
+```
+
+The [release workflow](.github/workflows/release.yml) builds the static binaries, checks them
+and publishes them with their SHA-256 checksums.
+
 ## License
 
-GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
+GNU Affero General Public License v3.0, the same as Immich. See [LICENSE](LICENSE).
